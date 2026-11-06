@@ -9,7 +9,7 @@
     "start": "node dist/server/entry.mjs",
     "stop": "astro dev stop",
     "docker-build": "docker build -t image-converter .",
-    "docker-run": "docker run -p 3000:3000 image-converter",
+    "docker-run": "docker run -p 1234:1234 image-converter",
     "docker-compose": "docker-compose up"
   },
   "dependencies": {

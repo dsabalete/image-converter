@@ -39,11 +39,12 @@ COPY --from=builder /app/dist ./dist
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 USER nextjs
 
-# Exponer puerto
-EXPOSE 3000
+# Exponer puerto 1234
+EXPOSE 1234
 
 # Variables de entorno
-ENV PORT=3000
+ENV HOST=0.0.0.0
+ENV PORT=1234
 ENV NODE_ENV=production
 
 # Iniciar el servidor
