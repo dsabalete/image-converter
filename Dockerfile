@@ -1,16 +1,13 @@
-# Build stage - usando imagen completa de Node.js
-FROM node:22-bookworm-slim AS builder
+# Usar imagen LTS de Node.js
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Instalar solo lo necesario
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Copiar package.json primero
+COPY package*.json ./
 
 # Instalar dependencias
-COPY package*.json ./
-RUN npm install --no-optional || npm ci
+RUN npm install --include=optional
 
 # Copiar código fuente
 COPY . .
@@ -18,26 +15,16 @@ COPY . .
 # Construir la aplicación
 RUN npm run build
 
-# Production stage
-FROM node:22-bookworm-slim AS runner
-
-WORKDIR /app
-
-# Copiar archivos necesarios
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+# Limpiar dependencias de desarrollo
+RUN npm prune --production
 
 # Exponer puerto
 EXPOSE 3000
 
-# Variable de entorno
+# Variables de entorno
+ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Usar usuario no root
-RUN adduser -D -u 1001 nodejs
-USER nodejs
-
-# Comando de inicio
-CMD ["node", "dist/server/entry.mjs"]
+# Iniciar el servidor
+CMD ["sh", "-c", "PORT=$PORT HOST=$HOST node dist/server/entry.mjs"]

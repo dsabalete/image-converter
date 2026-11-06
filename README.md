@@ -51,7 +51,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-La aplicación estará disponible en: http://localhost:3000
+La aplicación estará disponible en: http://localhost:1234
 
 ### Opción 2: Usar Docker directamente
 
@@ -59,27 +59,24 @@ La aplicación estará disponible en: http://localhost:3000
 # Construir la imagen
 docker build -t image-converter .
 
-# Ejecutar el contenedor
-docker run -p 3000:3000 image-converter
+# Ejecutar el contenedor (puerto 1234 en host, 3000 en contenedor)
+docker run -p 1234:3000 image-converter
 
 # Ejecutar con nombre personalizado
-docker run --name mi-conversor -p 3000:3000 image-converter
+docker run --name mi-conversor -p 1234:3000 image-converter
 ```
 
 ### Opciones de Docker
 
 ```bash
-# Construir con más recursos (más rápido)
-DOCKER_BUILDKIT=1 docker build -t image-converter .
-
-# Ejecutar en otro puerto
+# Ejecutar en otro puerto (ej: 8080 en host, 3000 en contenedor)
 docker run -p 8080:3000 image-converter
 
 # Ejecutar con reinicio automático
-docker run --restart unless-stopped -p 3000:3000 image-converter
+docker run --restart unless-stopped -p 1234:3000 image-converter
 
-# Ejecutar con volumen persistente (para logs/caché)
-docker run -p 3000:3000 -v ./data:/app/data image-converter
+# Ejecutar con volumen persistente
+docker run -p 1234:3000 -v ./data:/app/data image-converter
 ```
 
 ### Actualizar la imagen
@@ -87,7 +84,7 @@ docker run -p 3000:3000 -v ./data:/app/data image-converter
 ```bash
 # Reconstruir y reiniciar
 docker-compose down
-docker-compose up --build -d
+docker-compose up -d --build
 ```
 
 ## 🔌 API Endpoints
@@ -140,7 +137,7 @@ Obtiene una vista previa de la imagen convertida.
 
 ## 🖥️ Uso web
 
-1. Abrir http://localhost:3000 (o el puerto configurado) en el navegador
+1. Abrir http://localhost:1234 en el navegador
 2. Hacer clic en "📁 Seleccionar imagen"
 3. Elegir una imagen desde el equipo
 4. Seleccionar el formato de salida deseado
@@ -154,12 +151,13 @@ image-converter/
 ├── Dockerfile              # Imagen Docker
 ├── docker-compose.yml      # Orquestación Docker Compose
 ├── .dockerignore          # Archivos a ignorar en Docker
+├── build.sh               # Script de construcción
 ├── README.md              # Este archivo
 ├── src/
 │   ├── pages/
 │   │   ├── index.astro   # Página principal
 │   │   └── api/          # Endpoints API
-│   ├── components/       # Componentes Reactiva
+│   ├── components/       # Componentes
 │   └── lib/              # Librerías auxiliares
 ├── astro.config.mjs       # Configuración Astro
 ├── package.json           # Dependencias
@@ -178,7 +176,7 @@ cd image-converter
 # Ejecutar con Docker
 docker-compose up -d --build
 
-# ¡Listo! En http://localhost:3000
+# ¡Listo! En http://localhost:1234
 ```
 
 ## 🚀 Despliegue en producción
@@ -221,3 +219,43 @@ sudo systemctl start image-converter
 - **Cloudflare**: Usar Worker o Page Functions
 - **AWS**: EC2 o ECS con la imagen Docker
 - **DigitalOcean**: Droplet con Docker instalado
+
+## ✅ Verificación de la imagen Docker
+
+Una vez construida la imagen, puedes verificar que todo funciona correctamente:
+
+```bash
+# Verificar que la imagen se creó
+docker images | grep image-converter
+
+# Verificar que Sharp está instalado correctamente
+docker run --rm image-converter node -e "require('sharp'); console.log('✓ Sharp loaded successfully')"
+
+# Inspeccionar el contenido del build
+docker run --rm image-converter ls -la /app/dist/server/
+
+# Probar la API
+docker run -d -p 1234:3000 --name testimg image-converter
+sleep 2
+curl http://localhost:1234/api/convert
+```
+
+### Comando de prueba rápido con archivo de test
+
+```bash
+# Crear una imagen de prueba
+node -e "
+const sharp = require('sharp');
+const fs = require('fs');
+sharp({
+  create: { width: 100, height: 100, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } }
+}).png().toBuffer().then(b => fs.writeFileSync('test.png', b)).then(() => console.log('Test image created'));
+"
+
+# Convertir vía API
+curl -X POST -F "image=@test.png" -F "format=webp" http://localhost:1234/api/convert
+
+# Limpiar
+rm test.png
+docker stop testimg && docker rm testimg
+```
