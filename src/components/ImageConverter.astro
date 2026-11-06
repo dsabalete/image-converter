@@ -1,0 +1,328 @@
+---
+interface Props {
+  maxSize?: number;
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const AVAILABLE_FORMATS = ['png', 'jpg', 'jpeg', 'bmp', 'webp'];
+---
+
+<div id="converter-container">
+  <form id="convert-form" enctype="multipart/form-data" class="form-group">
+    <div class="input-section">
+      <label for="image-input" class="file-label">
+        <span class="file-label-text">📁 Seleccionar imagen</span>
+        <input type="file" id="image-input" name="image" accept="image/*" required />
+      </label>
+      
+      <div id="file-name-display" class="file-info" style="display: none;">
+        <span id="file-name"></span>
+      </div>
+    </div>
+
+    <div class="format-section">
+      <div class="format-group">
+        <label for="from-format">Formato origen:</label>
+        <select id="from-format" disabled>
+          <option value="auto">Automático</option>
+        </select>
+      </div>
+
+      <div class="format-group">
+        <label for="to-format">Convertir a:</label>
+        <select id="to-format" required>
+          {AVAILABLE_FORMATS.map(format => (
+            <option value={format}>{format.toUpperCase()}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <button type="submit" id="convert-btn" class="convert-btn">
+      🚀 Convertir Imagen
+    </button>
+  </form>
+
+  <div id="result-section" style="display: none;">
+    <h3>Resultado</h3>
+    <div id="download-link-container"></div>
+    <div id="preview-container" style="margin-top: 1rem;"></div>
+  </div>
+
+  <div id="error-container" style="display: none;"></div>
+</div>
+
+<style>
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .file-label {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .file-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  .file-label-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .file-info {
+    font-size: 0.9rem;
+    color: #4a5568;
+  }
+
+  .file-info span {
+    font-weight: 500;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+
+  .format-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .format-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .format-group label {
+    font-size: 0.85rem;
+    color: #718096;
+    font-weight: 500;
+  }
+
+  .format-group select {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 2px solid #e2e8f0;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .format-group select:hover {
+    border-color: #667eea;
+  }
+
+  .format-group select:disabled {
+    background: #f7fafc;
+    cursor: not-allowed;
+  }
+
+  .convert-btn {
+    padding: 1rem;
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .convert-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+  }
+
+  .convert-btn:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  #result-section h3 {
+    margin-top: 0;
+    color: #2d3748;
+    font-size: 1.2rem;
+  }
+
+  #error-container {
+    padding: 1rem;
+    background: #fed7d7;
+    border: 1px solid #f56565;
+    border-radius: 0.5rem;
+    color: #c53030;
+    font-size: 0.9rem;
+  }
+
+  .download-link {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #4299e1;
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .download-link:hover {
+    background: #3182ce;
+  }
+
+  .image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    object-fit: contain;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('convert-form');
+  const fileInput = document.getElementById('image-input');
+  const fromFormatSelect = document.getElementById('from-format');
+  const toFormatSelect = document.getElementById('to-format');
+  const convertBtn = document.getElementById('convert-btn');
+  const fileNameDisplay = document.getElementById('file-name-display');
+  const fileNameSpan = document.getElementById('file-name');
+  const resultSection = document.getElementById('result-section');
+  const errorContainer = document.getElementById('error-container');
+  const downloadLinkContainer = document.getElementById('download-link-container');
+
+  // Formatos compatibles con Sharp
+  const formatExtensions = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'webp': 'image/webp',
+    'bmp': 'image/bmp',
+    'gif': 'image/gif',
+    'tiff': 'image/tiff',
+    'avif': 'image/avif'
+  };
+
+  // Detectar formato del archivo
+  function getExtension(filename) {
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+  }
+
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const extension = getExtension(file.name);
+      
+      if (extension && fromFormatSelect) {
+        fromFormatSelect.innerHTML = `<option value="${extension}">${extension.toUpperCase()}</option>`;
+        fromFormatSelect.disabled = false;
+      }
+
+      fileNameSpan.textContent = file.name;
+      fileNameDisplay.style.display = 'flex';
+      errorContainer.style.display = 'none';
+    }
+  });
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const file = fileInput.files[0];
+    if (!file) {
+      showError('Por favor, selecciona una imagen');
+      return;
+    }
+
+    const targetFormat = toFormatSelect.value;
+    
+    convertBtn.disabled = true;
+    convertBtn.innerHTML = '<div class="spinner"></div> Convirtiendo...';
+    resultSection.style.display = 'none';
+    errorContainer.style.display = 'none';
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('format', targetFormat);
+
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al convertir la imagen');
+      }
+
+      const result = await response.json();
+      
+      downloadLinkContainer.innerHTML = `
+        <a href="${result.downloadUrl}" class="download-link" download="converted.${targetFormat}">
+          📥 Descargar imagen convertida (.${targetFormat})
+        </a>
+      `;
+
+      if (result.previewUrl) {
+        downloadLinkContainer.innerHTML += `
+          <div style="margin-top: 1rem;">
+            <img src="${result.previewUrl}" class="image-preview" alt="Preview de imagen convertida" />
+          </div>
+        `;
+      }
+
+      resultSection.style.display = 'block';
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      convertBtn.disabled = false;
+      convertBtn.innerHTML = '🚀 Convertir Imagen';
+    }
+  });
+
+  function showError(message) {
+    errorContainer.style.display = 'block';
+    errorContainer.textContent = message;
+  }
+</script>

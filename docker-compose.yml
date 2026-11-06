@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  image-converter:
+    build: .
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+    volumes:
+      - ./temp:/app/temp

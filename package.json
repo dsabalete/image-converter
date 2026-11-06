@@ -1,0 +1,19 @@
+{
+  "name": "image-converter",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node dist/server/entry.mjs",
+    "docker-build": "docker build -t image-converter .",
+    "docker-run": "docker run -p 3000:3000 image-converter",
+    "docker-compose": "docker-compose up"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.11",
+    "astro": "^7.4.7",
+    "sharp": "^0.35.5"
+  }
+}
